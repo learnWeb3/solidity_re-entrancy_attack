@@ -9,5 +9,6 @@ contract Owner {
 
     modifier isOwner() {
         require(msg.sender == owner, "you are not the owner");
+        _;
     }
 }
